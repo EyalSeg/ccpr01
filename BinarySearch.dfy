@@ -3,7 +3,7 @@ predicate Sorted(q: seq<int>)
 	forall i,j :: 0 <= i <= j < |q| ==> q[i] <= q[j] 
 }
 
-method {:verify false} BinarySearch(q: seq<int>, key: int) returns (j: nat)
+method {:verify true} BinarySearch(q: seq<int>, key: int) returns (j: nat)
 	requires Sorted(q) && key in q
 	ensures j < |q| && q[j] == key
 {
@@ -26,18 +26,61 @@ method {:verify false} BinarySearch(q: seq<int>, key: int) returns (j: nat)
 }
 
 predicate Inv(q: seq<int>, key: int, i: nat, j: nat, k: nat)
+{
+	i <= j < k <= |q| 
+	&& !(key in q[..i]) 
+	&& !(key in q[k..])
+	//(i == k || j != i || j != k)
+}
 
 predicate method Guard1(q: seq<int>, key: int, j: nat)
+{
+	j >= |q| || q[j] != key
+}
 
-method Init(q: seq<int>, key: int) returns (i: nat, j: nat, k: nat)
+method {:verify true} Init(q: seq<int>, key: int) returns (i: nat, j: nat, k: nat)
+requires key in q
+ensures i <= j < k <= |q|
+ensures !(key in q[..i])
+ensures !(key in q[k..])
+{
+	i := 0;
+	k := |q|; 
+	j := (i + k) / 2;
+}
 
 function V(i: nat, k: nat): int
+{
+	k - i
+}
 
-predicate method Guard2(q: seq<int>, key: int, j: nat)
+predicate method  {:verify true} Guard2(q: seq<int>, key: int, j: nat)
+requires j < |q|
+{
+	q[j] < key
+}
 
-method UpdateI(q: seq<int>, key: int, i0: nat, j: nat, k: nat) returns (i: nat)
+method {:verify true} UpdateI(q: seq<int>, key: int, i0: nat, j: nat, k: nat) returns (i: nat)
+requires i0 < (j + 1) < k <= |q|
+requires Sorted(q)
+requires q[j] < key
+ensures i0 < i < k
+ensures i < |q|
+ensures !(key in q[..i])
+{
+	i := j + 1;
+}
 
-method UpdateK(q: seq<int>, key: int, i: nat, j: nat, k0: nat) returns (k: nat)
+method {:verify true} UpdateK(q: seq<int>, key: int, i: nat, j: nat, k0: nat) returns (k: nat)
+requires i <= j < k0 <= |q|
+requires Sorted(q)
+requires q[j] > key
+ensures k < k0
+ensures 0 <= k < |q|
+ensures !(key in q[k..])
+{
+	k := j;
+}
 
 method Main()
 {
