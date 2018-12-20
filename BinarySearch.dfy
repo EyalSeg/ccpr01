@@ -28,21 +28,18 @@ method {:verify true} BinarySearch(q: seq<int>, key: int) returns (j: nat)
 predicate Inv(q: seq<int>, key: int, i: nat, j: nat, k: nat)
 {
 	i <= j < k <= |q| 
-	&& !(key in q[..i]) 
-	&& !(key in q[k..])
-	//(i == k || j != i || j != k)
+	&& key in q[i..k]
 }
 
 predicate method Guard1(q: seq<int>, key: int, j: nat)
+requires 0 <= j < |q|
 {
-	j >= |q| || q[j] != key
+	q[j] != key
 }
 
-method {:verify true} Init(q: seq<int>, key: int) returns (i: nat, j: nat, k: nat)
-requires key in q
-ensures i <= j < k <= |q|
-ensures !(key in q[..i])
-ensures !(key in q[k..])
+method Init(q: seq<int>, key: int) returns (i: nat, j: nat, k: nat)
+	requires key in q
+	ensures Inv(q, key, i , j ,k)
 {
 	i := 0;
 	k := |q|; 
@@ -54,30 +51,31 @@ function V(i: nat, k: nat): int
 	k - i
 }
 
-predicate method  {:verify true} Guard2(q: seq<int>, key: int, j: nat)
+predicate method Guard2(q: seq<int>, key: int, j: nat)
 requires j < |q|
 {
 	q[j] < key
 }
 
-method {:verify true} UpdateI(q: seq<int>, key: int, i0: nat, j: nat, k: nat) returns (i: nat)
-requires i0 < (j + 1) < k <= |q|
+method UpdateI(q: seq<int>, key: int, i0: nat, j: nat, k: nat) returns (i: nat)
 requires Sorted(q)
+requires j + 1 < k
+requires Inv(q, key, i0, j, k)
 requires q[j] < key
-ensures i0 < i < k
-ensures i < |q|
-ensures !(key in q[..i])
+ensures i > i0
+ensures k > i
+ensures key in q[i..k]
 {
 	i := j + 1;
 }
 
-method {:verify true} UpdateK(q: seq<int>, key: int, i: nat, j: nat, k0: nat) returns (k: nat)
-requires i <= j < k0 <= |q|
+method UpdateK(q: seq<int>, key: int, i: nat, j: nat, k0: nat) returns (k: nat)
+requires Inv(q, key, i, j, k0)
 requires Sorted(q)
 requires q[j] > key
-ensures k < k0
-ensures 0 <= k < |q|
-ensures !(key in q[k..])
+requires j > i
+ensures k0 > k > i
+ensures key in q[i..k]
 {
 	k := j;
 }
