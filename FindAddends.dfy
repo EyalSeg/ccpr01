@@ -23,18 +23,36 @@ method FindAddends(q: seq<int>, x: int) returns (i: nat, j: nat)
         invariant Inv(q, x, i, j, i_result, j_result)
         decreases j - i
     {
-        if  q[i] + q[j] < x
+        if Guard2(q, x, i, j)
         {
-
+            // For clarification see L1
             i := i + 1;
         }
         else
         {
-
+            // L2 should be similar to L1
             j := j - 1;
         }
 
     }
+}
+
+
+lemma L1 (q : seq<int>, x: int, i: nat, j: nat, i_result:nat, j_result:nat)
+    requires Inv(q, x, i, j, i_result, j_result)
+    requires Guard2(q, x, i, j)
+    requires Sorted(q) 
+    requires q[i_result] + q[j_result] == x
+    ensures Inv(q, x, i+1, j, i_result, j_result)
+{
+    // Guard2 + q[i_result] + q[j_result] == x  ==> i != i_result || j != j_result ==>
+    // Invariant ==> i < i_result || j > j_result ==>
+    // Negately assume i == i result, therefore j > j_result
+    // Guard2 ==> q[i] + q[j] < x ==>
+    // Sorted & j > j_result ==> q[i] + q[j_result] < q[i] + q[j] < x ==>
+    // i == i_result ==> q[i_result] + q[j_result] < x. Contradiction.
+
+    // Therefore, i < i_result 
 }
 
 predicate method Guard(q : seq<int>, x: int, i: nat, j: nat)
@@ -43,11 +61,17 @@ requires 0 <= i < j < |q|
     q[i] + q[j] != x
 }
 
+predicate method Guard2(q : seq<int>, x:int, i:nat, j:nat)
+requires 0 <= i < j < |q|
+{
+    q[i] + q[j] < x
+    }
+
 predicate Inv(q : seq<int>, x: int, i: nat, j: nat, i_result:nat, j_result:nat){
     0 <= i < j < |q| 
+    && 0 <= i_result < j_result < |q| 
     && i <= i_result
     && j >= j_result
-    //forall i0, j0 :: 0 <= i0 < i < j < j0 < |q| ==> q[i0] + q[j0] != x
 }
 
 method Main()
