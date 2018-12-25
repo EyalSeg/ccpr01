@@ -10,37 +10,95 @@ predicate Inv(q: seq<int>, key: int, i: nat, j: nat, k: nat)
 }
 
 
-method {:verify true}BinarySearch(q: seq<int>, key: int) returns (j: nat)
+method {:verify true} BinarySearch(q: seq<int>, key: int) returns (j: nat)
 	requires Sorted(q) && key in q
 	ensures j < |q| && q[j] == key
+	{
+		//introduce locals 
+		var i: nat, k : nat;
+		i, j, k := BinarySearch2(q, key);
+	}
+
+method {:verify true} BinarySearch2(q: seq<int>, key: int) returns (i:nat, j: nat, k:nat )
+	requires Sorted(q)
+	requires key in q
+	ensures j < |q| 
+	ensures q[j] == key
 {
-	// Introduce local variables + alteration
-	var i: nat, k: nat;
-
-	// assignment 
+	// Sequential composition1
 	i, j, k := Init(q, key);
+	i, j, k := Iteration (q, key, i, j, k);
 
-	// !Guard ==> q[j] == key  therefore, 
-	// !Guard ==> post
-	j := Iteration(q, key, i, j, k);
+	L1(q, key, i, j, k);
 }
 
 
-method Iteration(q: seq<int>, key: int, i0: nat, j0: nat, k0: nat) returns (j: nat)
+method {:verify true} Init(q: seq<int>, key: int) returns (i:nat, j: nat, k:nat )
+	requires Sorted(q) 
+	requires key in q
+	ensures Sorted(q)
+	ensures Inv(q, key, i, j, k)
+
+	{
+		// weaken precondition
+		i, j, k := InitIJK(q, key);
+	}
+
+
+method {:verify true} InitIJK(q: seq<int>, key: int) returns (i: nat, j:nat, k:nat)
+	//requires Sorted(q) 
+	requires key in q
+	ensures Inv(q, key, i, j, k)
+{
+	// leading Assignment
+	i, k := InitIK(q, key);
+	j := UpdateJ(i, k);
+}
+
+method InitIK (q: seq<int>, key:int )returns (i:nat, k:nat)
+requires key in q
+ensures i < k <= |q|
+ensures key in q[i..k]
+{
+	// Assignment
+	i := 0;
+	k := |q|;
+}
+
+
+
+method {:verify true} UpdateJ (i:nat, k:nat) returns (j : nat)
+requires i < k
+ensures i <= j < k
+{	
+	//Assignment
+	j := (i + k) / 2;
+}
+
+
+method Iteration(q: seq<int>, key: int, i0: nat, j0: nat, k0: nat) returns (i:nat, j: nat, k : nat)
 	requires Inv(q, key, i0, j0, k0)
 	requires Sorted(q)
-	ensures j <|q|
-	ensures !(Guard1(q, key, j))
+	ensures Inv(q, key, i, j, k)
+	ensures q[j] == key
 {
-	var i: nat, k : nat;
 	i, j, k := i0, j0, k0;
-	while Guard1(q, key, j)
+	while q[j] != key
 		invariant Inv(q, key, i, j, k)
 		decreases V(i, k)
 		{
 			i, j, k := LoopBody(q, key, i, j ,k);
 		}
 
+}
+
+lemma L1(q: seq<int>, key: int, i : nat, j:nat, k:nat)
+requires Inv(q, key, i, j, k)
+requires q[j] == key
+ensures j < |q|
+ensures q[j] == key
+{
+	
 }
 
 method LoopBody(q: seq<int>, key: int, i0: nat, j0: nat, k0: nat) returns (i :nat, j: nat, k:nat)
@@ -74,15 +132,6 @@ predicate method Guard1(q: seq<int>, key: int, j: nat)
 requires 0 <= j < |q|
 {
 	q[j] != key
-}
-
-method Init(q: seq<int>, key: int) returns (i: nat, j: nat, k: nat)
-	requires key in q
-	ensures Inv(q, key, i , j ,k)
-{
-	i := 0;
-	k := |q|; 
-	j := (i + k) / 2;
 }
 
 function V(i: nat, k: nat): int
