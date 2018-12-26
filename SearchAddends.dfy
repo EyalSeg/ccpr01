@@ -11,22 +11,22 @@ predicate HasAddends(q: seq<int>, x: int)
 method FindAddends(q: seq<int>, x: int) returns (i: nat, j: nat)
 	requires Sorted(q)
     requires HasAddends(q, x)
-	ensures 0 <= i < j < |q| && q[i]+q[j] == x
+	ensures  i < j < |q| && q[i]+q[j] == x
 {
     // Introduce logical constants
         ghost var i_result, j_result :|
             0 <= i_result < j_result < |q|
             && q[i_result] + q[j_result] == x;
-
+    //Assignment
     i, j := FindAddends_WithLogicalConstants(q, x, i_result, j_result);
 }
 
-method {:verify false} FindAddends_WithLogicalConstants(q: seq<int>, x: int, ghost i_result : nat, ghost j_result:nat) returns(i: nat, j:nat)
+method {:verify true} FindAddends_WithLogicalConstants(q: seq<int>, x: int, ghost i_result : nat, ghost j_result:nat) returns(i: nat, j:nat)
 requires Sorted(q)
+requires HasAddends(q, x)
 requires 0 <= i_result < j_result < |q|
 requires q[i_result] + q[j_result] == x
-ensures 0 <= i < j < |q|
-ensures q[i] + q[j] == x
+ensures i < j < |q| && q[i] + q[j] == x
 {
     // Sequential composition
     i, j := Init(q, x, i_result, j_result);
@@ -35,23 +35,27 @@ ensures q[i] + q[j] == x
 }
 
 method {:verify true} Init(q: seq<int>, x : int, ghost i_result:nat, ghost j_result:nat ) returns (i:nat, j:nat)
-requires 0 <= i_result < j_result < |q|
-requires HasAddends(q, x)
 requires Sorted(q)
+requires HasAddends(q, x)
+requires 0 <= i_result < j_result < |q|
+requires q[i_result] + q[j_result] == x
 ensures  0 <= i <= j < |q|
 ensures i <= i_result
 ensures j_result <= j
-{
+ensures Sorted(q)
+ensures  0 <= i_result < j_result < |q|
+ensures q[i_result] + q[j_result] == x
+{     
     i, j := 0, |q| - 1;
 }
 
 lemma Lemma_init(q: seq<int>, x : int, i : nat, j:nat, i_result:nat, j_result:nat )
-requires Sorted(q)
-requires 0 <= i_result < j_result < |q|
 requires  0 <= i <= j < |q|
-requires q[i_result] + q[j_result] == x
 requires i <= i_result
 requires j_result <= j
+requires Sorted(q)
+requires 0 <= i_result < j_result < |q|
+requires q[i_result] + q[j_result] == x
 ensures Inv(q, x, i, j, i_result, j_result)
 {
 
